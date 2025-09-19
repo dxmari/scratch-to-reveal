@@ -47,6 +47,7 @@
         .initial-message {
             font-size: 24px;
             color: #333;
+            font-weight: 600;
             margin-bottom: 30px;
             line-height: 1.4;
         }
@@ -250,6 +251,7 @@
         
         <div class="controls">
             <button class="btn" onclick="resetCard()">🔄 Reset Card</button>
+            <button class="btn" id="soundToggle" onclick="toggleSound()">🔊 Sound On</button>
             <!-- <button class="btn" onclick="downloadImage()">📸 Save Image</button> -->
         </div>
     </div>
@@ -262,6 +264,8 @@
         let scratchedPixels = 0;
         let totalPixels = 0;
         let revealThreshold = 0.6;
+        let soundEnabled = true;
+        let currentAudio = { cheer: null, birthday: null };
 
         function initCanvas() {
             canvas = document.getElementById('scratchCanvas');
@@ -409,6 +413,9 @@
         }
 
         function revealComplete() {
+            // Play celebration sound
+            playRevealSound();
+            
             // Fade out canvas
             canvas.style.transition = 'opacity 1s ease';
             canvas.style.opacity = '0';
@@ -459,6 +466,248 @@
                         confetti.remove();
                     }, fallDuration);
                 }, i * 100);
+            }
+        }
+
+        // Sound functions
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const soundToggle = document.getElementById('soundToggle');
+            soundToggle.textContent = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
+            soundToggle.style.opacity = soundEnabled ? '1' : '0.6';
+            
+            // Stop any currently playing audio when sound is disabled
+            if (!soundEnabled) {
+                if (currentAudio.cheer) {
+                    currentAudio.cheer.pause();
+                    currentAudio.cheer.currentTime = 0;
+                }
+                if (currentAudio.birthday) {
+                    currentAudio.birthday.pause();
+                    currentAudio.birthday.currentTime = 0;
+                }
+            }
+        }
+
+        function playRevealSound() {
+            if (!soundEnabled) return;
+            
+            try {
+                // Play both audio files in parallel
+                playCrowdCheer();
+                playBirthdaySong();
+                
+            } catch (error) {
+                console.log('Audio not available:', error);
+                playFallbackSound();
+            }
+        }
+
+        function playCrowdCheer() {
+            try {
+                // Stop any existing cheer audio
+                if (currentAudio.cheer) {
+                    currentAudio.cheer.pause();
+                    currentAudio.cheer.currentTime = 0;
+                }
+                
+                const cheerAudio = new Audio('short-crowd-cheer.mp3');
+                currentAudio.cheer = cheerAudio;
+                cheerAudio.volume = 0.8; // Prominent volume
+                cheerAudio.preload = 'auto';
+                
+                cheerAudio.play().catch(e => {
+                    console.log('Crowd cheer audio failed:', e);
+                    // Fallback to synthetic cheering
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    createCheeringSound(audioContext);
+                });
+                
+                // Clean up when finished
+                cheerAudio.addEventListener('ended', () => {
+                    currentAudio.cheer = null;
+                });
+                
+            } catch (error) {
+                console.log('Crowd cheer not available:', error);
+            }
+        }
+
+        function playBirthdaySong() {
+            try {
+                // Stop any existing birthday audio
+                if (currentAudio.birthday) {
+                    currentAudio.birthday.pause();
+                    currentAudio.birthday.currentTime = 0;
+                }
+                
+                const birthdayAudio = new Audio('happy-birthday-song.mp3');
+                currentAudio.birthday = birthdayAudio;
+                birthdayAudio.volume = 0.3; // Soft background volume
+                birthdayAudio.loop = false; // Play once
+                birthdayAudio.preload = 'auto';
+                
+                birthdayAudio.play().catch(e => {
+                    console.log('Birthday song audio failed:', e);
+                    // Fallback to synthetic fanfare
+                    setTimeout(() => {
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        createFanfareSound(audioContext);
+                    }, 500);
+                });
+                
+                // Clean up when finished
+                birthdayAudio.addEventListener('ended', () => {
+                    currentAudio.birthday = null;
+                });
+                
+            } catch (error) {
+                console.log('Birthday song not available:', error);
+            }
+        }
+
+        function createClappingSound(audioContext) {
+            // Create multiple clapping sounds with slight variations
+            for (let clap = 0; clap < 8; clap++) {
+                setTimeout(() => {
+                    // Each clap is a burst of noise
+                    const bufferSize = audioContext.sampleRate * 0.1; // 0.1 second
+                    const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    
+                    // Generate clapping noise (white noise with envelope)
+                    for (let i = 0; i < bufferSize; i++) {
+                        const envelope = Math.exp(-i / (bufferSize * 0.3)); // Quick decay
+                        data[i] = (Math.random() * 2 - 1) * envelope * 0.3;
+                    }
+                    
+                    const source = audioContext.createBufferSource();
+                    const gainNode = audioContext.createGain();
+                    
+                    source.buffer = buffer;
+                    source.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    
+                    source.start(audioContext.currentTime);
+                }, clap * 80 + Math.random() * 40); // Slight timing variation
+            }
+        }
+
+        function createCheeringSound(audioContext) {
+            // Create cheering "YAY!" sounds
+            const cheerFrequencies = [
+                [440, 554, 659], // A4, C#5, E5 - "YAY!"
+                [392, 523, 659], // G4, C5, E5 - "WOO!"
+                [349, 440, 523]  // F4, A4, C5 - "YEAH!"
+            ];
+            
+            cheerFrequencies.forEach((chord, index) => {
+                setTimeout(() => {
+                    chord.forEach((freq, noteIndex) => {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+                        
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+                        
+                        oscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+                        oscillator.type = 'sawtooth'; // Brighter sound for excitement
+                        
+                        // Quick attack, longer sustain for cheering
+                        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.05);
+                        gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.2);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.8);
+                        
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.8);
+                    });
+                }, index * 200);
+            });
+        }
+
+        function createFanfareSound(audioContext) {
+            // Create a triumphant fanfare
+            const fanfareNotes = [
+                { freq: 523.25, duration: 0.3 }, // C5
+                { freq: 659.25, duration: 0.3 }, // E5
+                { freq: 783.99, duration: 0.3 }, // G5
+                { freq: 1046.5, duration: 0.6 }  // C6 - high triumphant note
+            ];
+            
+            fanfareNotes.forEach((note, index) => {
+                setTimeout(() => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+                    
+                    oscillator.frequency.setValueAtTime(note.freq, audioContext.currentTime);
+                    oscillator.type = 'square'; // Bold, triumphant sound
+                    
+                    // Fanfare envelope - quick attack, sustained
+                    gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.2, audioContext.currentTime + 0.05);
+                    gainNode.gain.linearRampToValueAtTime(0.15, audioContext.currentTime + 0.1);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + note.duration);
+                    
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + note.duration);
+                }, index * 300);
+            });
+        }
+
+        function playFallbackSound() {
+            try {
+                // Create a simple beep sound using data URI
+                const audio = new Audio();
+                const sampleRate = 44100;
+                const duration = 0.5;
+                const frequency = 800;
+                
+                // Generate a simple sine wave
+                const samples = sampleRate * duration;
+                const buffer = new ArrayBuffer(44 + samples * 2);
+                const view = new DataView(buffer);
+                
+                // WAV header
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+                
+                writeString(0, 'RIFF');
+                view.setUint32(4, 36 + samples * 2, true);
+                writeString(8, 'WAVE');
+                writeString(12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, 1, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * 2, true);
+                view.setUint16(32, 2, true);
+                view.setUint16(34, 16, true);
+                writeString(36, 'data');
+                view.setUint32(40, samples * 2, true);
+                
+                // Generate sine wave
+                for (let i = 0; i < samples; i++) {
+                    const sample = Math.sin(2 * Math.PI * frequency * i / sampleRate) * 0.3;
+                    view.setInt16(44 + i * 2, sample * 32767, true);
+                }
+                
+                const blob = new Blob([buffer], { type: 'audio/wav' });
+                audio.src = URL.createObjectURL(blob);
+                audio.volume = 0.3;
+                audio.play().catch(e => console.log('Audio play failed:', e));
+                
+            } catch (error) {
+                console.log('Fallback audio not available:', error);
             }
         }
 
