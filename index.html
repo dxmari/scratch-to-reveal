@@ -254,6 +254,15 @@
             <button class="btn" id="soundToggle" onclick="toggleSound()">🔊 Sound On</button>
             <!-- <button class="btn" onclick="downloadImage()">📸 Save Image</button> -->
         </div>
+        
+        <div id="audioEnableSection" style="margin-top: 15px;">
+            <button class="btn" id="enableSoundBtn" onclick="enableSound()" style="background: linear-gradient(45deg, #4caf50, #45a049);">
+                🔊 Enable Sound for Mobile
+            </button>
+            <div id="audioHint" style="font-size: 12px; color: #666; margin-top: 8px; font-style: italic;">
+                Click this button first to enable sound on mobile devices
+            </div>
+        </div>
     </div>
 
     <div class="toast" id="toast">🎉 Congratulations! Baby Ruthran is revealed! 🎉</div>
@@ -266,6 +275,7 @@
         let revealThreshold = 0.6;
         let soundEnabled = true;
         let currentAudio = { cheer: null, birthday: null };
+        let audioInitialized = false;
 
         function initCanvas() {
             canvas = document.getElementById('scratchCanvas');
@@ -340,6 +350,14 @@
             canvas.addEventListener('touchmove', scratchTouch, { passive: false });
             canvas.addEventListener('touchend', stopScratching, { passive: false });
             canvas.addEventListener('touchcancel', stopScratching, { passive: false });
+            
+            // Add click event for audio initialization
+            canvas.addEventListener('click', function() {
+                if (!audioInitialized) {
+                    initializeAudio();
+                    audioInitialized = true;
+                }
+            });
         }
 
         function startScratching(e) {
@@ -376,6 +394,12 @@
         }
 
         function scratchAt(x, y) {
+            // Initialize audio on first user interaction (mobile requirement)
+            if (!audioInitialized) {
+                initializeAudio();
+                audioInitialized = true;
+            }
+            
             ctx.globalCompositeOperation = 'destination-out';
             ctx.beginPath();
             ctx.arc(x, y, 25, 0, 2 * Math.PI);
@@ -470,7 +494,138 @@
         }
 
         // Sound functions
+        function initializeAudio() {
+            try {
+                console.log('Initializing audio for mobile...');
+                
+                // Method 1: Create silent audio to unlock audio context on mobile
+                const silentAudio = new Audio();
+                silentAudio.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+                silentAudio.volume = 0;
+                silentAudio.play().then(() => {
+                    console.log('Audio context unlocked for mobile');
+                    hideAudioHint();
+                }).catch(e => {
+                    console.log('Silent audio failed:', e);
+                    // Try alternative method
+                    tryAlternativeAudioInit();
+                });
+                
+                // Method 2: Also try to unlock Web Audio API
+                if (window.AudioContext || window.webkitAudioContext) {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    if (audioContext.state === 'suspended') {
+                        audioContext.resume().then(() => {
+                            console.log('Web Audio API unlocked');
+                            hideAudioHint();
+                        }).catch(e => {
+                            console.log('Web Audio API resume failed:', e);
+                        });
+                    } else {
+                        console.log('Web Audio API already active');
+                        hideAudioHint();
+                    }
+                }
+                
+            } catch (error) {
+                console.log('Audio initialization error:', error);
+                tryAlternativeAudioInit();
+            }
+        }
+
+        function tryAlternativeAudioInit() {
+            try {
+                // Alternative: Try with actual audio files
+                const testAudio = new Audio('short-crowd-cheer.mp3');
+                testAudio.volume = 0;
+                testAudio.play().then(() => {
+                    console.log('Alternative audio init successful');
+                    testAudio.pause();
+                    testAudio.currentTime = 0;
+                    hideAudioHint();
+                }).catch(e => {
+                    console.log('Alternative audio init failed:', e);
+                });
+            } catch (error) {
+                console.log('Alternative audio init error:', error);
+            }
+        }
+
+        function hideAudioHint() {
+            const audioHint = document.getElementById('audioHint');
+            const audioEnableSection = document.getElementById('audioEnableSection');
+            if (audioHint) {
+                audioHint.style.display = 'none';
+            }
+            if (audioEnableSection) {
+                audioEnableSection.style.display = 'none';
+            }
+        }
+
+        function enableSound() {
+            console.log('User clicked Enable Sound button');
+            
+            // Try multiple methods to enable audio
+            const enableSoundBtn = document.getElementById('enableSoundBtn');
+            enableSoundBtn.textContent = '🔄 Enabling...';
+            enableSoundBtn.disabled = true;
+            
+            // Method 1: Try to play the actual audio files
+            Promise.all([
+                new Promise((resolve) => {
+                    const cheerAudio = new Audio('short-crowd-cheer.mp3');
+                    cheerAudio.volume = 0.1;
+                    cheerAudio.play().then(() => {
+                        console.log('Crowd cheer test successful');
+                        cheerAudio.pause();
+                        cheerAudio.currentTime = 0;
+                        resolve(true);
+                    }).catch(e => {
+                        console.log('Crowd cheer test failed:', e);
+                        resolve(false);
+                    });
+                }),
+                new Promise((resolve) => {
+                    const birthdayAudio = new Audio('happy-birthday-song.mp3');
+                    birthdayAudio.volume = 0.1;
+                    birthdayAudio.play().then(() => {
+                        console.log('Birthday song test successful');
+                        birthdayAudio.pause();
+                        birthdayAudio.currentTime = 0;
+                        resolve(true);
+                    }).catch(e => {
+                        console.log('Birthday song test failed:', e);
+                        resolve(false);
+                    });
+                })
+            ]).then((results) => {
+                const [cheerSuccess, birthdaySuccess] = results;
+                
+                if (cheerSuccess || birthdaySuccess) {
+                    console.log('Audio enabled successfully!');
+                    audioInitialized = true;
+                    enableSoundBtn.textContent = '✅ Sound Enabled!';
+                    enableSoundBtn.style.background = 'linear-gradient(45deg, #4caf50, #45a049)';
+                    
+                    setTimeout(() => {
+                        hideAudioHint();
+                    }, 2000);
+                } else {
+                    console.log('Audio enable failed');
+                    enableSoundBtn.textContent = '❌ Failed - Try Again';
+                    enableSoundBtn.style.background = 'linear-gradient(45deg, #f44336, #d32f2f)';
+                    enableSoundBtn.disabled = false;
+                }
+            });
+        }
+
         function toggleSound() {
+            // Initialize audio on sound toggle (user interaction)
+            if (!audioInitialized) {
+                initializeAudio();
+                audioInitialized = true;
+            }
+            
             soundEnabled = !soundEnabled;
             const soundToggle = document.getElementById('soundToggle');
             soundToggle.textContent = soundEnabled ? '🔊 Sound On' : '🔇 Sound Off';
@@ -516,12 +671,19 @@
                 cheerAudio.volume = 0.8; // Prominent volume
                 cheerAudio.preload = 'auto';
                 
-                cheerAudio.play().catch(e => {
-                    console.log('Crowd cheer audio failed:', e);
-                    // Fallback to synthetic cheering
-                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    createCheeringSound(audioContext);
-                });
+                // Mobile-friendly audio play with user interaction
+                const playPromise = cheerAudio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('Crowd cheer playing successfully');
+                    }).catch(e => {
+                        console.log('Crowd cheer audio failed:', e);
+                        // Fallback to synthetic cheering
+                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        createCheeringSound(audioContext);
+                    });
+                }
                 
                 // Clean up when finished
                 cheerAudio.addEventListener('ended', () => {
@@ -547,14 +709,21 @@
                 birthdayAudio.loop = false; // Play once
                 birthdayAudio.preload = 'auto';
                 
-                birthdayAudio.play().catch(e => {
-                    console.log('Birthday song audio failed:', e);
-                    // Fallback to synthetic fanfare
-                    setTimeout(() => {
-                        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                        createFanfareSound(audioContext);
-                    }, 500);
-                });
+                // Mobile-friendly audio play with user interaction
+                const playPromise = birthdayAudio.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        console.log('Birthday song playing successfully');
+                    }).catch(e => {
+                        console.log('Birthday song audio failed:', e);
+                        // Fallback to synthetic fanfare
+                        setTimeout(() => {
+                            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                            createFanfareSound(audioContext);
+                        }, 500);
+                    });
+                }
                 
                 // Clean up when finished
                 birthdayAudio.addEventListener('ended', () => {
@@ -712,6 +881,12 @@
         }
 
         function resetCard() {
+            // Initialize audio on reset (user interaction)
+            if (!audioInitialized) {
+                initializeAudio();
+                audioInitialized = true;
+            }
+            
             canvas.style.display = 'block';
             canvas.style.opacity = '1';
             canvas.style.transition = 'none';
@@ -757,6 +932,18 @@
         // Initialize when page loads
         window.addEventListener('load', () => {
             initCanvas();
+            
+            // Check if mobile device
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                           ('ontouchstart' in window) || 
+                           (navigator.maxTouchPoints > 0);
+            
+            // Show enable sound button only on mobile
+            const audioEnableSection = document.getElementById('audioEnableSection');
+            if (!isMobile && audioEnableSection) {
+                audioEnableSection.style.display = 'none';
+            }
+            
             // Prevent all scrolling on mobile
             document.body.style.overflow = 'hidden';
             document.documentElement.style.overflow = 'hidden';
