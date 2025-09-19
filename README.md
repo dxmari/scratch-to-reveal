@@ -13,8 +13,21 @@ An interactive web application that creates a scratch-off card experience to rev
 
 ## 🚀 Quick Start
 
+### Option 1: Development Server (Recommended)
 1. **Clone or Download** the project files
-2. **Open** `scratch_reveal_baby_ruthran.html` in any modern web browser
+2. **Install Node.js** (if not already installed)
+3. **Start the development server**:
+   ```bash
+   npm start
+   # or
+   node server.js
+   ```
+4. **Open** `http://localhost:8000` in your browser
+5. **For mobile testing**: Use the IP address shown in the server console
+
+### Option 2: Direct File Access
+1. **Clone or Download** the project files
+2. **Open** `index.html` in any modern web browser
 3. **Start Scratching** to reveal the hidden message!
 
 ## 🎮 How to Use
@@ -32,12 +45,15 @@ An interactive web application that creates a scratch-off card experience to rev
 - **CSS3**: Styling, animations, and responsive design
 - **Vanilla JavaScript**: Interactive functionality and canvas manipulation
 - **HTML5 Canvas**: Scratch-off effect implementation
+- **Node.js**: Development server for testing
 
 ### Key Technologies
 - **Canvas API**: For the scratch-off visual effect
 - **Touch Events**: Mobile gesture handling
 - **CSS Animations**: Smooth transitions and confetti effects
 - **Responsive Design**: Mobile-first approach
+- **Google Fonts**: Comic Neue & Fredoka One for consistent typography
+- **Font Optimization**: Cross-platform rendering with antialiasing
 
 ### Browser Compatibility
 - ✅ Chrome (recommended)
@@ -49,7 +65,7 @@ An interactive web application that creates a scratch-off card experience to rev
 ## 🎨 Customization
 
 ### Changing the Baby Name
-Edit line 211 in the HTML file:
+Edit line 241 in the HTML file:
 ```html
 <div class="hidden-message">
     Say hello to Baby [YOUR_NAME] 💙
@@ -57,7 +73,7 @@ Edit line 211 in the HTML file:
 ```
 
 ### Modifying the Initial Message
-Edit lines 200-202:
+Edit lines 230-232:
 ```html
 <div class="initial-message">
     We've been keeping a little secret… 🤫
@@ -73,10 +89,16 @@ The main color scheme is defined in the CSS:
 - **Text**: Blue (`#4169e1`)
 
 ### Changing Reveal Threshold
-Modify line 234 to change how much needs to be scratched:
+Modify line 264 to change how much needs to be scratched:
 ```javascript
 let revealThreshold = 0.6; // 60% - change to 0.5 for 50%, etc.
 ```
+
+### Font Customization
+The app uses optimized fonts for consistent rendering:
+- **Main Text**: Comic Neue (modern Comic Sans alternative)
+- **Baby Name**: Fredoka One (fun, bold display font)
+- **Fallbacks**: System fonts for maximum compatibility
 
 ## 📱 Mobile Features
 
@@ -84,6 +106,8 @@ let revealThreshold = 0.6; // 60% - change to 0.5 for 50%, etc.
 - **Gesture Prevention**: Disables zoom and pull-to-refresh
 - **Responsive Layout**: Adapts to different screen sizes
 - **Touch-Friendly**: Large touch targets and smooth interactions
+- **Font Consistency**: Optimized typography for mobile devices
+- **High DPI Support**: Crisp text on Retina displays
 
 ## 🎉 Animation Details
 
@@ -97,10 +121,19 @@ let revealThreshold = 0.6; // 60% - change to 0.5 for 50%, etc.
 
 ### File Structure
 ```
-scratch-reveal/
-├── scratch_reveal_baby_ruthran.html  # Main application file
+scratch-to-reveal/
+├── index.html                        # Main application file
+├── server.js                         # Development server
+├── package.json                      # Node.js project configuration
 └── README.md                         # This file
 ```
+
+### Development Server Features
+- **Auto IP Detection**: Automatically shows your local IP for mobile testing
+- **Colored Logging**: Request logging with colors for better debugging
+- **No Caching**: Always serves fresh content during development
+- **Dev-Friendly 404s**: Helpful error pages with available files
+- **Graceful Shutdown**: Clean server shutdown with Ctrl+C
 
 ### Key Functions
 - `initCanvas()`: Sets up the scratch-off canvas
@@ -131,6 +164,9 @@ Feel free to fork this project and customize it for your own baby announcements!
 - Photo backgrounds
 - Different scratch patterns
 - Social sharing features
+- Custom font themes
+- Animation variations
+- Progress indicators
 
 ## 🎊 Use Cases
 
